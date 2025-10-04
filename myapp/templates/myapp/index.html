@@ -1,0 +1,179 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-triard Pro: Event Planner & Weather Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind Configuration must remain in the HTML head before it's used
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1', // Indigo-500 (Clean, modern primary)
+                        'secondary': '#f97316', // Orange-600 for highlights
+                        'bg-dark': '#0f172a', // Slate-900 base background
+                        'card-dark': '#1e293b', // Slate-800 card background
+                        'input-dark': '#334155', // Slate-700 for input fields
+                        'rain-dark': '#0c4a6e', // Cyan-800 for rain effect
+                        'sun-light': '#fef3c7', // Yellow-100 for sun effect
+                    },
+                    boxShadow: {
+                        '3xl': '0 35px 60px -15px rgba(0, 0, 0, 0.8)', // Extra deep shadow
+                    }
+                }
+            }
+        }
+    </script>
+  
+    
+<script src="{% static 'myapp/script.js' %}"></script>
+<link rel="stylesheet" href="{% static 'myapp/style.css' %}">
+</head>
+<body class="text-white">
+    <canvas id="rainCanvas" class="fixed top-0 left-0 w-full h-full z-0"></canvas>
+
+    <div class="container-card">
+        <h1 class="text-4xl font-black text-center mb-10 text-primary uppercase tracking-widest border-b-2 border-primary/20 pb-4">
+            D-TRIARD PRO <span id="header-emoji">✨</span>
+        </h1>
+
+        <div id="message-container" class="fixed top-0 left-1/2 -translate-x-1/2 mt-4 z-50 w-full max-w-sm">
+            </div>
+
+        <div id="auth-view" class="view active p-6">
+            <h2 class="text-2xl font-bold mb-8 text-center text-secondary">Access Your Pro Event Toolkit</h2>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium mb-2 text-gray-300">Username:</label>
+                    <input type="text" id="username" required value="guest" class="w-full form-input-field">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium mb-2 text-gray-300">Password:</label>
+                    <input type="password" id="password" required value="1234" class="w-full form-input-field">
+                </div>
+                <button type="submit" class="w-full primary-btn text-white font-bold py-3 mt-4">
+                    Sign In to Dashboard
+                </button>
+            </form>
+            <p class="text-center text-sm mt-6 text-gray-500">
+                New user? <a href="#" id="show-signup" class="text-secondary hover:text-orange-400 font-bold transition duration-300">Create Account</a>
+            </p>
+            
+            <form id="signup-form" style="display: none;" class="mt-8 border-t border-gray-700 pt-8 space-y-6">
+                <h3 class="text-xl font-bold mb-4 text-center text-secondary">New User Registration</h3>
+                <div>
+                    <label for="new-username" class="block text-sm font-medium mb-2 text-gray-300">Choose Username:</label>
+                    <input type="text" id="new-username" required class="w-full form-input-field">
+                </div>
+                <div>
+                    <label for="new-password" class="block text-sm font-medium mb-2 text-gray-300">Choose Password:</label>
+                    <input type="password" id="new-password" required class="w-full form-input-field">
+                </div>
+                <button type="submit" class="w-full secondary-btn text-white font-bold py-3 mt-4">
+                    Register & Continue
+                </button>
+            </form>
+        </div>
+
+        <div id="dashboard-view" class="view hidden p-6">
+            <h2 id="welcome-message" class="text-3xl font-bold mb-10 text-center text-white">Welcome!</h2>
+            <div class="space-y-6">
+                <button id="add-event-btn" class="w-full text-xl dashboard-btn secondary-btn bg-green-600 hover:bg-green-700 py-4">
+                    📅 Plan New Event & Forecast
+                </button>
+                <button id="view-events-btn" class="w-full text-xl dashboard-btn primary-btn py-4">
+                    📚 Review Past Plans
+                </button>
+                <button id="logout-btn" class="w-full text-xl dashboard-btn bg-gray-600 hover:bg-gray-700 py-4 back-btn">
+                    🚪 Log Out
+                </button>
+            </div>
+        </div>
+
+        <div id="event-form-view" class="view hidden p-6">
+            <h2 class="text-3xl font-bold mb-6 text-secondary">Plan Your Perfect Day</h2>
+            
+            <button id="back-to-dashboard-form-top" class="w-full text-lg back-btn primary-btn py-3 mb-8">
+                ← Back to Dashboard
+            </button>
+            
+            <form id="weather-form" class="space-y-6">
+                <div>
+                    <label for="event-name" class="block text-sm font-medium mb-2 text-gray-300">Event Name:</label>
+                    <input type="text" id="event-name" required placeholder="Birthday Picnic, Wedding, Hike" class="w-full form-input-field">
+                </div>
+                <div>
+                    <label for="event-details" class="block text-sm font-medium mb-2 text-gray-300">Event Details (Optional):</label>
+                    <textarea id="event-details" rows="2" placeholder="Describe the outdoor element..." class="w-full form-input-field"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="target-date" class="block text-sm font-medium mb-2 text-gray-300">Target Date:</label>
+                        <input type="date" id="target-date" required class="w-full form-input-field">
+                    </div>
+                    <div>
+                        <label for="event-hour" class="block text-sm font-medium mb-2 text-gray-300">Start Time (Hour):</label>
+                        <input type="time" id="event-hour" value="12:00" required class="w-full form-input-field">
+                    </div>
+                </div>
+
+                <div class="space-y-4 border border-gray-700 p-4 rounded-xl">
+                    <h3 class="text-lg font-bold text-primary">Pinpoint Location Selection (Recommended)</h3>
+                    
+                    <div id="map-container"></div>
+                    
+                    <p class="text-sm text-gray-400 bg-input-dark/50 p-2 rounded-lg">
+                        1. **Drag the red pin** or click on the map to select the *exact* location.
+                    </p>
+
+
+                    <div class="relative z-50">
+                        <input type="text" id="location-query" placeholder="2. Search for a city, landmark, or address..." class="w-full form-input-field" autocomplete="off">
+                        <div id="suggestions" class="hidden absolute w-full mt-1 rounded-b-xl overflow-hidden shadow-lg border border-gray-700"></div>
+                    </div>
+
+                    <div id="geocoding-result" class="min-h-[2rem] p-3 rounded-lg bg-input-dark/50 border border-gray-600 text-sm text-gray-400">
+                        Pin location not locked yet. Drag the marker on the map to set coordinates.
+                    </div>
+                </div>
+                <input type="hidden" id="final-location-lat" required data-error="Please select a location on the map.">
+                <input type="hidden" id="final-location-lng" required data-error="Please select a location on the map.">
+                <input type="hidden" id="final-location-name" required data-error="Please select a location on the map.">
+
+
+                <button type="submit" id="predict-btn" class="w-full primary-btn text-white text-xl font-bold py-4 mt-8">
+                    ⚡️ GET RAIN PREDICTION
+                </button>
+            </form>
+
+            <div id="results" class="results-area mt-10 p-6 rounded-xl shadow-2xl transition-all duration-700 bg-gray-700/30 border border-gray-600/50">
+                <h3 class="text-2xl font-bold mb-4 text-white border-b border-gray-500/30 pb-2">Prediction Summary:</h3>
+                <p id="prediction-message" class="text-gray-300 mb-6 text-lg">Enter event details above to see the forecast...</p>
+                <div id="probability-bar" class="progress-bar-container h-10 rounded-full overflow-hidden shadow-inner bg-input-dark">
+                    <div id="probability-fill" class="progress-fill h-full text-lg text-white flex justify-center items-center font-extrabold" style="width: 0%;"></div>
+                </div>
+            </div>
+            
+            <button id="back-to-dashboard-form-bottom" class="w-full text-lg back-btn primary-btn py-3 mt-8">Back to Dashboard</button>
+        </div>
+
+        <div id="past-events-view" class="view hidden p-6">
+            <h2 class="text-3xl font-bold mb-6 text-secondary text-center">Your Event History</h2>
+
+            <button id="back-to-dashboard-history-top" class="w-full text-lg back-btn primary-btn py-3 mb-8">
+                ← Back to Dashboard
+            </button>
+            
+            <ul id="events-list" class="space-y-4 list-none p-0">
+                <li class="bg-gray-700 p-4 rounded-xl text-gray-400 border border-gray-600">No events added yet.</li>
+            </ul>
+        </div>
+    </div>
+   <script src="{% static 'myapp/script.js' %}"></script>
+  
+</body>
+</html>

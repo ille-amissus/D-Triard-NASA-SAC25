@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 
+
 def get_climatology(lat, lon, month, day, start_year=2000, end_year=2010):
     url = (
         f"https://power.larc.nasa.gov/api/temporal/daily/point"

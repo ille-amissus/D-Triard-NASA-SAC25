@@ -1,64 +1,69 @@
 import requests
 import pandas as pd
+from myapp.services.mapping import geocode_city
 
-def get_climatology(city, month, day, start_year=2000, end_year=2010):
-    CITY_COORDS = {
-        "istanbul": (41.0082, 28.9784),
-        "ankara": (39.9208, 32.8541),
-        "izmir": (38.4192, 27.1287),
-        "sakarya": (40.7731, 30.3948),
-        "antalya": (36.8841, 30.7056),
-        "bursa": (40.1828, 29.0669),
-        "cairo": (30.0444, 31.2357),
-    }
+def get_climatology(city, month, day, start_year=2000, end_year=2024):
+    try:
+        # 1️⃣ Get coordinates dynamically
+        lat, lon = geocode_city(city)
+        if not lat or not lon:
+            return {"error": f"Could not find coordinates for city '{city}'"}
 
-    # Normalize and validate city name
-    city = city.strip().lower()
-    city = city.split(",")[0]  # handle cases like "Sakarya, Turkey"
-    if city not in CITY_COORDS:
-        raise ValueError(f"City '{city}' not found in database")
+        # 2️⃣ Fetch NASA POWER data
+        url = (
+            f"https://power.larc.nasa.gov/api/temporal/daily/point"
+            f"?parameters=PRECTOTCORR,T2M,RH2M,WS2M"
+            f"&community=AG&longitude={lon}&latitude={lat}"
+            f"&start={start_year}0101&end={end_year}1231&format=JSON"
+        )
 
-    # ✅ Now lat/lon are properly defined
-    lat, lon = CITY_COORDS[city]
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            return {"error": f"NASA POWER API failed with {resp.status_code}"}
 
-    # Fetch NASA POWER data
-    url = (
-        f"https://power.larc.nasa.gov/api/temporal/daily/point"
-        f"?parameters=PRECTOTCORR,T2M,RH2M,WS2M"
-        f"&community=AG&longitude={lon}&latitude={lat}"
-        f"&start={start_year}0101&end={end_year}1231&format=JSON"
-    )
+        data = resp.json()
 
-    resp = requests.get(url).json()
+        # 3️⃣ Validate response
+        if "properties" not in data or "parameter" not in data["properties"]:
+            return {"error": "Invalid response from NASA POWER API"}
 
-    # Validate NASA response
-    if "properties" not in resp or "parameter" not in resp["properties"]:
-        raise ValueError("Invalid response from NASA POWER API")
+        # 4️⃣ Build DataFrame correctly
+        df = pd.DataFrame(data["properties"]["parameter"])
+        if df.empty:
+            return {"error": "NASA data returned empty DataFrame"}
 
-    # Convert to DataFrame
-    df = pd.DataFrame(resp["properties"]["parameter"])
-    df.index = pd.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index)
 
-    # Filter by month and day
-    mask = (df.index.month == month) & (df.index.day == day)
-    daily_values = df.loc[mask]
+        mask = (df.index.month == month) & (df.index.day == day)
+        daily_values = df.loc[mask]
 
-    if daily_values.empty:
-        raise ValueError(f"No climatology data found for {city} on {month}/{day}")
+        if daily_values.empty:
+            return {"error": f"No climatology data found for {city} on {month}/{day}"}
 
-    # Calculate averages
-    daily_mean = daily_values.mean()
+        daily_mean = daily_values.mean()
 
-    # Probability of rain = fraction of days with rainfall > 0
-    rain_prob = (daily_values["PRECTOTCORR"] > 0).sum() / len(daily_values)
+        # 5️⃣ Compute weighted probability
+        base_prob = (daily_values["PRECTOTCORR"] > 1.0).sum() / len(daily_values)
+        temp = daily_mean["T2M"]
+        humidity = daily_mean["RH2M"]
+        wind = daily_mean["WS2M"]
 
-    return {
-        "city": city,
-        "month": month,
-        "day": day,
-        "rain": float(daily_mean["PRECTOTCORR"]),
-        "temp": float(daily_mean["T2M"]),
-        "humidity": float(daily_mean["RH2M"]),
-        "wind": float(daily_mean["WS2M"]),
-        "rain_prob": round(float(rain_prob), 2),
-    }
+        humidity_factor = humidity / 100
+        temp_factor = 1 - abs(temp - 20) / 40
+        wind_factor = min(wind / 10, 1)
+
+        rain_prob = round(base_prob * (0.5 + 0.5 * (humidity_factor + temp_factor + wind_factor) / 3), 2)
+
+        return {
+            "city": city,
+            "month": month,
+            "day": day,
+            "rain": float(daily_mean["PRECTOTCORR"]),
+            "temp": float(daily_mean["T2M"]),
+            "humidity": float(daily_mean["RH2M"]),
+            "wind": float(daily_mean["WS2M"]),
+            "rain_prob": rain_prob,
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

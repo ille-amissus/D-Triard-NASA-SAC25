@@ -9,6 +9,51 @@ let marker = null;
 // Default to Sakarya University
 const DEFAULT_COORDS = [40.742476, 30.330814]; 
 const DEFAULT_LOCATION_NAME = "Sakarya University (Default)";
+function renderUserEvents(events) {
+    const list = document.getElementById('events-list');
+    if (!list) {
+        console.error("❌ #events-list not found in DOM");
+        return;
+    }
+
+    // Clear the list first
+    list.innerHTML = "";
+
+    if (!events || events.length === 0) {
+        list.innerHTML = `<li class="bg-gray-700 p-4 rounded-xl text-gray-400 border border-gray-600">
+            No events recorded yet.
+        </li>`;
+        return;
+    }
+
+    // Build each event card
+    events.forEach(event => {
+        const emoji = event.probability >= 0.65 ? "⛈️" :
+                      event.probability >= 0.4 ? "🌦️" : "☀️";
+
+        const item = document.createElement("li");
+        item.className = "p-5 rounded-xl border-l-4 border-gray-500 bg-gray-800/50 mb-3 shadow-md";
+        item.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg text-secondary">${event.name}</h3>
+                    <p class="text-sm text-gray-300">${event.city}</p>
+                    <p class="text-xs text-gray-500">${event.date}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-bold">${(event.probability * 100).toFixed(0)}% ${emoji}</p>
+                    <p class="text-xs text-gray-400">Chance of rain</p>
+                </div>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+
+    // Switch to past-events-view
+    showView('past-events-view');
+    displayMessage(`📖 Loaded ${events.length} saved events.`, "info");
+}
+
 
 // --- Custom Message Display ---
 function displayMessage(text, type = 'info') {
@@ -32,19 +77,30 @@ function displayMessage(text, type = 'info') {
 }
 
 // --- VIEW MANAGEMENT ---
+// Enhance showView to also reattach event listeners
 function showView(viewId) {
+    // Hide all views first
     document.querySelectorAll('.view').forEach(view => {
-        view.classList.add('hidden');
+        view.style.display = 'none';
     });
-    document.getElementById(viewId).classList.remove('hidden');
-    if (viewId !== 'event-form-view' && rainManager) {
-        rainManager.stop();
+
+    // Show the selected view
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.style.display = 'block';
     }
-    if (viewId === 'event-form-view' && map) {
-        map.invalidateSize();
+
+    // 🔁 Reattach Back button each time we change view
+    const backBtn = document.getElementById('back-to-dashboard-history-top');
+    if (backBtn) {
+        console.log("✅ Reattached back button");
+        backBtn.onclick = () => {
+            console.log("⬅️ Back button clicked");
+            showView('dashboard-view');
+        };
     }
-    window.scrollTo(0, 0); 
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
    document.getElementById('login-form').addEventListener('submit', function(event) {
@@ -70,19 +126,59 @@ document.addEventListener("DOMContentLoaded", () => {
 });     // <-- closes the DOMContentLoaded
 
 
+document.getElementById('show-signup').addEventListener('click', (e) => {
+    e.preventDefault();
+    const signupForm = document.getElementById('signup-form');
+    signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+});
 
-document.getElementById('signup-form').addEventListener('submit', async function(event) {
-    event.preventDefault();
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const username = document.getElementById('new-username').value;
     const password = document.getElementById('new-password').value;
+
+    const res = await fetch('/api/signup/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+
+if (res.ok) {
+    displayMessage("✅ Account created! Please log in.", "success");
+    document.getElementById('signup-form').style.display = 'none';
+    document.getElementById('login-form').reset();
+}
+
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
-    currentUserID = null;
-    showView('auth-view');
-    document.getElementById('login-form').reset();
-    displayMessage('Logged out.', 'info');
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    const res = await fetch('/api/login/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+        currentUserID = data.user_id;
+        displayMessage("🎉 Welcome, " + username + "!", "success");
+        showView('dashboard-view');
+    } else displayMessage("❌ " + data.error, "error");
 });
+document.getElementById('view-events-btn').addEventListener('click', async () => {
+    const res = await fetch('/api/events/');
+    const data = await res.json();
+    if (res.ok) renderUserEvents(data.events);
+    else displayMessage("❌ " + data.error, "error");
+});
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('weather-form');
@@ -186,6 +282,7 @@ function displayResults(result, cityName, dateValue) {
 
 
 
+
 // --- EVENT HISTORY ---
 async function fetchPastEvents(userID) {
     const eventsList = document.getElementById('events-list');
@@ -221,7 +318,45 @@ async function fetchPastEvents(userID) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    rainCanvas = document.getElementById('rainCanvas');
-    rainManager = new RainCanvas(rainCanvas);
+    // rainCanvas = document.getElementById('rainCanvas');
+    // rainManager = new RainCanvas(rainCanvas);
     showView('auth-view');
 });
+function setupBackButton() {
+  const btn = document.getElementById("back-to-dashboard-history-top");
+  if (!btn) {
+    console.warn("⚠️ Button not found yet, retrying...");
+    return setTimeout(setupBackButton, 500);
+  }
+
+  console.log("✅ Back button found:", btn);
+  btn.addEventListener("click", () => {
+    console.log("⬅️ Back button clicked");
+    showView("dashboard-view");
+  });
+}
+
+document.addEventListener("DOMContentLoaded", setupBackButton);
+
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    function attachBackButton() {
+      const btn = document.getElementById("back-to-dashboard-history-top");
+      if (btn) {
+        console.log("✅ Back button found:", btn);
+        btn.addEventListener("click", () => {
+          console.log("⬅️ Back button clicked");
+          showView("dashboard-view");
+        });
+      } else {
+        console.warn("⚠️ Back button not found yet, retrying...");
+        setTimeout(attachBackButton, 500);
+      }
+    }
+    attachBackButton();
+  } catch (err) {
+    console.error("⚠️ Error in back button handler:", err);
+  }
+});
+
+

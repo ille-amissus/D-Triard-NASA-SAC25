@@ -85,41 +85,49 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("✅ Prediction handled ");
-    document.getElementById('weather-form').addEventListener('submit', async function(event) {
-        console.log("🚀  before Weather form submitted...");
+    const form = document.getElementById('weather-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(event) {
         event.preventDefault();
-console.log("🚀 Weather form submitted...");
+
         const eventName = document.getElementById('event-name').value;
         const eventDetails = document.getElementById('event-details').value;
         const dateInput = document.getElementById('target-date').value;
-        const lat = document.getElementById('final-location-lat').value;
-        const lon = document.getElementById('final-location-lng').value;
-        const locationName = document.getElementById('final-location-name').value;
 
-        if (!eventName || !dateInput || !lat || !lon) {
-            displayMessage("⚠️ Please complete all fields.", 'error');
+        // 👇 the actual city input field in your HTML
+        const cityInput = document.getElementById('location-query').value.trim();
+        console.log({ eventName, dateInput, cityInput });
+
+
+        if (!eventName || !dateInput || !cityInput) {
+            displayMessage("⚠️ Please enter all the fields ", 'error');
             return;
         }
 
-        const targetDate = new Date(dateInput);
-        const month = targetDate.getMonth() + 1;
-        const day = targetDate.getDate();
+        const date = new Date(dateInput);
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
 
         try {
-            console.log("✅ Prediction handled 1");
-            const response = await fetch(`/api/climatology/?lat=${lat}&lon=${lon}&month=${month}&day=${day}`);
-            if (!response.ok) throw new Error("Prediction API error");
+            displayMessage(`🌦 Fetching forecast for ${cityInput}...`, 'info');
+
+            // call your Django API using city name
+            const response = await fetch(`/api/climatology/?city=${encodeURIComponent(cityInput)}&month=${month}&day=${day}`);
             const result = await response.json();
 
+            if (!response.ok) throw new Error(result.error || "Backend returned error");
+
+            // interpret backend result
             const backendResult = {
                 probability: result.rain_prob,
                 isRainy: result.rain_prob > 0.5
             };
 
-            displayResults(backendResult, locationName, dateInput);
+            // display forecast on screen
+            displayResults(backendResult, cityInput, dateInput);
 
-            // Save event to backend
+            // then POST the event to /api/events/
             await fetch('/api/events/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -128,20 +136,54 @@ console.log("🚀 Weather form submitted...");
                     name: eventName,
                     details: eventDetails,
                     date: dateInput,
-                    latitude: lat,
-                    longitude: lon,
+                    city: cityInput,
                     probability: result.rain_prob
                 })
             });
 
-            displayMessage(`Event "${eventName}" saved successfully!`, 'success');
-
+            displayMessage(`✅ Event "${eventName}" saved successfully!`, 'success');
         } catch (err) {
             console.error(err);
-            displayMessage("❌ Failed to fetch prediction.", 'error');
+            displayMessage("❌ Could not fetch forecast data. Please try again.", 'error');
         }
     });
 });
+function displayResults(result, cityName, dateValue) {
+    const probabilityPercentage = (result.probability * 100).toFixed(0);
+    const predictionMessage = document.getElementById('prediction-message');
+    const probabilityFill = document.getElementById('probability-fill');
+
+    if (!predictionMessage || !probabilityFill) {
+        console.error("Missing prediction UI elements in HTML!");
+        return;
+    }
+
+    // Choose message and color
+    let message = "";
+    let color = "";
+    if (result.probability >= 0.65) {
+        message = "🌧 High chance of rain. Consider indoor plans!";
+        color = "red";
+    } else if (result.probability >= 0.4) {
+        message = "🌦 Moderate chance of rain. Stay cautious!";
+        color = "orange";
+    } else {
+        message = "☀️ Low chance of rain. Great day for outdoor activities!";
+        color = "green";
+    }
+
+    // Update UI
+    predictionMessage.innerHTML = `
+        <strong>Forecast for ${cityName}</strong><br>
+        Date: ${dateValue}<br>
+        Rain Probability: ${probabilityPercentage}%<br>
+        <span style="color:${color}; font-weight:bold;">${message}</span>
+    `;
+
+    probabilityFill.style.width = `${probabilityPercentage}%`;
+    probabilityFill.style.backgroundColor = color;
+}
+
 
 
 // --- EVENT HISTORY ---
@@ -150,7 +192,7 @@ async function fetchPastEvents(userID) {
     eventsList.innerHTML = '<li>Loading events...</li>';
 
     try {
-        const response = await fetch(`/api/events/?user_id=${userID}`);
+        const response = await fetch(`/api/events/`);
         if (!response.ok) throw new Error("Events fetch failed");
         const events = await response.json();
 
@@ -177,7 +219,7 @@ async function fetchPastEvents(userID) {
     }
 }
 
-// --- INIT ---
+
 document.addEventListener('DOMContentLoaded', () => {
     rainCanvas = document.getElementById('rainCanvas');
     rainManager = new RainCanvas(rainCanvas);

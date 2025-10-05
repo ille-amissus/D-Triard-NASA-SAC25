@@ -1,20 +1,22 @@
-from .services.mapping import geocode_city
-from .services.power_api import get_climatology
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
 
-@csrf_exempt
-def events_view(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        # save event here
-        return JsonResponse({"status": "ok", "message": "Event saved!"})
+from .services.power_api import get_climatology
 
+
+# -------------------------
+# HOME PAGE (frontend)
+# -------------------------
 def home(request):
     return render(request, "myapp/index.html")
 
+
+# -------------------------
+# CLIMATOLOGY ENDPOINT
+# Example call: /api/climatology/?city=cairo&month=1&day=15
+# -------------------------
 def climatology_view(request):
     city = request.GET.get("city")
     month = int(request.GET.get("month", 7))
@@ -23,20 +25,25 @@ def climatology_view(request):
     if not city:
         return JsonResponse({"error": "City name is required"}, status=400)
 
-    lat, lon = geocode_city(city)
-    if not lat or not lon:
-        return JsonResponse({"error": f"City '{city}' not found"}, status=404)
+    try:
+        data = get_climatology(city, month, day)
+        data["city"] = city
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
-    data = get_climatology(lat, lon, month, day)
-    data["city"] = city
-    return JsonResponse(data)
- 
 
+# -------------------------
+# EVENT SAVE ENDPOINT
+# Example: POST /api/events/
+# -------------------------
+@csrf_exempt
 def events_view(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
 
+            # Extract event info from frontend payload
             event_name = data.get("name")
             event_details = data.get("details", "")
             date = data.get("date")
@@ -45,8 +52,11 @@ def events_view(request):
             probability = data.get("probability")
             user_id = data.get("user_id", "guest")
 
+            # (Optionally: you could save to DB here later)
+            # For now we just echo back the data
             return JsonResponse({
                 "status": "success",
+                "message": f"Event '{event_name}' saved successfully!",
                 "event": {
                     "user_id": user_id,
                     "name": event_name,
@@ -61,4 +71,4 @@ def events_view(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-    return JsonResponse({"status": "error", "message": "Only POST allowed"}, status=405)
+    return JsonResponse({"status": "error", "message": "Only POST method allowed"}, status=405)

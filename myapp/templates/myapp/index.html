@@ -29,7 +29,7 @@
     </script>
   
     
-<script src="{% static 'myapp/script.js' %}"></script>
+<!-- <script src="{% static 'myapp/script.js' %}"></script> -->
 <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
 </head>
 <body class="text-white">
@@ -126,9 +126,7 @@
                     
                     <div id="map-container"></div>
                     
-                    <p class="text-sm text-gray-400 bg-input-dark/50 p-2 rounded-lg">
-                        1. **Drag the red pin** or click on the map to select the *exact* location.
-                    </p>
+                   
 
 
                     <div class="relative z-50">
@@ -136,14 +134,9 @@
                         <div id="suggestions" class="hidden absolute w-full mt-1 rounded-b-xl overflow-hidden shadow-lg border border-gray-700"></div>
                     </div>
 
-                    <div id="geocoding-result" class="min-h-[2rem] p-3 rounded-lg bg-input-dark/50 border border-gray-600 text-sm text-gray-400">
-                        Pin location not locked yet. Drag the marker on the map to set coordinates.
-                    </div>
+                    
                 </div>
-                <input type="hidden" id="final-location-lat" required data-error="Please select a location on the map.">
-                <input type="hidden" id="final-location-lng" required data-error="Please select a location on the map.">
-                <input type="hidden" id="final-location-name" required data-error="Please select a location on the map.">
-
+              
 
                 <button type="submit" id="predict-btn" class="w-full primary-btn text-white text-xl font-bold py-4 mt-8">
                     ⚡️ GET RAIN PREDICTION

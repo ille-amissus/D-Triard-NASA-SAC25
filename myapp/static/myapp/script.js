@@ -1,362 +1,301 @@
-// --- GLOBALS AND UTILITIES ---
-let rainCanvas, rainManager;
-const RAIN_DROPS_COUNT = 300; 
-let currentUserID = null; 
-let suggestionTimeout = null;
-let map = null;
-let marker = null;
+let currentUserID = null;
 
-// Default to Sakarya University
-const DEFAULT_COORDS = [40.742476, 30.330814]; 
-const DEFAULT_LOCATION_NAME = "Sakarya University (Default)";
-function renderUserEvents(events) {
-    const list = document.getElementById('events-list');
-    if (!list) {
-        console.error("❌ #events-list not found in DOM");
-        return;
+function displayMessage(text, type = "info") {
+    const container = document.getElementById("message-container");
+    if (!container) return;
+
+    const colorMap = {
+        success: "bg-green-600 border-green-800",
+        error: "bg-red-600 border-red-800",
+        info: "bg-primary border-indigo-800",
+    };
+
+    const messageEl = document.createElement("div");
+    messageEl.textContent = text;
+    messageEl.className = `p-4 rounded-xl shadow-2xl text-white font-medium border-2 ${colorMap[type] || colorMap.info} transition-all duration-300 transform-gpu translate-y-0 opacity-100 mb-2`;
+
+    container.prepend(messageEl);
+
+    setTimeout(() => {
+        messageEl.classList.add("opacity-0", "-translate-y-full");
+        messageEl.addEventListener("transitionend", () => messageEl.remove(), {once: true});
+    }, 3500);
+}
+
+function showView(viewId) {
+    document.querySelectorAll(".view").forEach((view) => {
+        view.style.display = "none";
+    });
+
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.style.display = "block";
     }
+}
 
-    // Clear the list first
+function renderUserEvents(events) {
+    const list = document.getElementById("events-list");
+    if (!list) return;
+
     list.innerHTML = "";
 
     if (!events || events.length === 0) {
         list.innerHTML = `<li class="bg-gray-700 p-4 rounded-xl text-gray-400 border border-gray-600">
             No events recorded yet.
         </li>`;
+        showView("past-events-view");
         return;
     }
 
-    // Build each event card
-    events.forEach(event => {
-        const emoji = event.probability >= 0.65 ? "⛈️" :
-                      event.probability >= 0.4 ? "🌦️" : "☀️";
+    events.forEach((event) => {
+        const riskLabel = event.probability >= 0.65
+            ? "High rain risk"
+            : event.probability >= 0.4
+                ? "Moderate rain risk"
+                : "Low rain risk";
 
         const item = document.createElement("li");
         item.className = "p-5 rounded-xl border-l-4 border-gray-500 bg-gray-800/50 mb-3 shadow-md";
-        item.innerHTML = `
-            <div class="flex justify-between items-center">
-                <div>
-                    <h3 class="font-bold text-lg text-secondary">${event.name}</h3>
-                    <p class="text-sm text-gray-300">${event.city}</p>
-                    <p class="text-xs text-gray-500">${event.date}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-lg font-bold">${(event.probability * 100).toFixed(0)}% ${emoji}</p>
-                    <p class="text-xs text-gray-400">Chance of rain</p>
-                </div>
-            </div>
-        `;
+
+        const row = document.createElement("div");
+        row.className = "flex justify-between items-center gap-4";
+
+        const details = document.createElement("div");
+        const title = document.createElement("h3");
+        title.className = "font-bold text-lg text-secondary";
+        title.textContent = event.name;
+
+        const city = document.createElement("p");
+        city.className = "text-sm text-gray-300";
+        city.textContent = event.city;
+
+        const date = document.createElement("p");
+        date.className = "text-xs text-gray-500";
+        date.textContent = event.date;
+
+        details.append(title, city, date);
+
+        const summary = document.createElement("div");
+        summary.className = "text-right";
+
+        const probability = document.createElement("p");
+        probability.className = "text-lg font-bold";
+        probability.textContent = `${(event.probability * 100).toFixed(0)}%`;
+
+        const label = document.createElement("p");
+        label.className = "text-xs text-gray-400";
+        label.textContent = riskLabel;
+
+        summary.append(probability, label);
+        row.append(details, summary);
+        item.appendChild(row);
         list.appendChild(item);
     });
 
-    // Switch to past-events-view
-    showView('past-events-view');
-    displayMessage(`📖 Loaded ${events.length} saved events.`, "info");
+    showView("past-events-view");
+    displayMessage(`Loaded ${events.length} saved event(s).`, "info");
 }
 
-
-// --- Custom Message Display ---
-function displayMessage(text, type = 'info') {
-    const container = document.getElementById('message-container');
-    const colorMap = {
-        success: 'bg-green-600 border-green-800',
-        error: 'bg-red-600 border-red-800',
-        info: 'bg-primary border-indigo-800'
-    };
-    
-    const messageEl = document.createElement('div');
-    messageEl.textContent = text;
-    messageEl.className = `p-4 rounded-xl shadow-2xl text-white font-medium border-2 ${colorMap[type]} transition-all duration-300 transform-gpu translate-y-0 opacity-100 mb-2`;
-
-    container.prepend(messageEl);
-
-    setTimeout(() => {
-        messageEl.classList.add('opacity-0', '-translate-y-full');
-        messageEl.addEventListener('transitionend', () => messageEl.remove());
-    }, 3500);
-}
-
-// --- VIEW MANAGEMENT ---
-// Enhance showView to also reattach event listeners
-function showView(viewId) {
-    // Hide all views first
-    document.querySelectorAll('.view').forEach(view => {
-        view.style.display = 'none';
+async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+        credentials: "same-origin",
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
     });
+    const data = await response.json();
+    return {response, data};
+}
 
-    // Show the selected view
-    const target = document.getElementById(viewId);
-    if (target) {
-        target.style.display = 'block';
+async function loadPastEvents() {
+    const {response, data} = await fetchJson("/api/events/");
+    if (response.ok) {
+        renderUserEvents(data.events || []);
+        return;
     }
 
-    // 🔁 Reattach Back button each time we change view
-    const backBtn = document.getElementById('back-to-dashboard-history-top');
-    if (backBtn) {
-        console.log("✅ Reattached back button");
-        backBtn.onclick = () => {
-            console.log("⬅️ Back button clicked");
-            showView('dashboard-view');
-        };
+    displayMessage(data.error || "Could not load saved events.", "error");
+}
+
+function displayResults(result, cityName, dateValue) {
+    const probabilityPercentage = (result.probability * 100).toFixed(0);
+    const predictionMessage = document.getElementById("prediction-message");
+    const probabilityFill = document.getElementById("probability-fill");
+
+    if (!predictionMessage || !probabilityFill) return;
+
+    let message = "";
+    let color = "";
+    if (result.probability >= 0.65) {
+        message = "High chance of rain. Consider indoor plans.";
+        color = "red";
+    } else if (result.probability >= 0.4) {
+        message = "Moderate chance of rain. Stay cautious.";
+        color = "orange";
+    } else {
+        message = "Low chance of rain. Great day for outdoor activities.";
+        color = "green";
     }
+
+    predictionMessage.replaceChildren();
+
+    const title = document.createElement("strong");
+    title.textContent = `Forecast for ${cityName}`;
+
+    const dateLine = document.createTextNode(`Date: ${dateValue}`);
+    const rainLine = document.createTextNode(`Rain Probability: ${probabilityPercentage}%`);
+    const messageLine = document.createElement("span");
+    messageLine.style.color = color;
+    messageLine.style.fontWeight = "bold";
+    messageLine.textContent = message;
+
+    predictionMessage.append(title, document.createElement("br"));
+    predictionMessage.append(dateLine, document.createElement("br"));
+    predictionMessage.append(rainLine, document.createElement("br"));
+    predictionMessage.append(messageLine);
+
+    probabilityFill.style.width = `${probabilityPercentage}%`;
+    probabilityFill.style.backgroundColor = color;
+    probabilityFill.textContent = `${probabilityPercentage}%`;
 }
 
-
-document.addEventListener("DOMContentLoaded", () => {
-   document.getElementById('login-form').addEventListener('submit', function(event) {
-       event.preventDefault();
-       const username = document.getElementById('username').value;
-       displayMessage(`Welcome, ${username}! Let's plan some events.`, 'success');
-       showView('dashboard-view');
-
-       // --- Dashboard buttons ---
-       document.getElementById('add-event-btn').addEventListener('click', () => {
-           showView('event-form-view'); // go to weather form
-       });
-
-       document.getElementById('view-events-btn').addEventListener('click', () => {
-           showView('past-events-view'); // go to history
-       });
-
-       document.getElementById('logout-btn').addEventListener('click', () => {
-           showView('auth-view'); // back to login
-           displayMessage("You have been logged out.", "info");
-       });
-   }); // <-- closes the login-form submit handler
-});     // <-- closes the DOMContentLoaded
-
-
-document.getElementById('show-signup').addEventListener('click', (e) => {
-    e.preventDefault();
-    const signupForm = document.getElementById('signup-form');
-    signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
-});
-
-document.getElementById('signup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('new-username').value;
-    const password = document.getElementById('new-password').value;
-
-    const res = await fetch('/api/signup/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password})
+function setupNavigation() {
+    document.getElementById("add-event-btn")?.addEventListener("click", () => {
+        showView("event-form-view");
     });
-    const data = await res.json();
 
-if (res.ok) {
-    displayMessage("✅ Account created! Please log in.", "success");
-    document.getElementById('signup-form').style.display = 'none';
-    document.getElementById('login-form').reset();
+    document.getElementById("view-events-btn")?.addEventListener("click", async () => {
+        try {
+            await loadPastEvents();
+        } catch (err) {
+            console.error(err);
+            displayMessage("Could not load saved events.", "error");
+        }
+    });
+
+    document.querySelectorAll(".back-btn").forEach((button) => {
+        button.addEventListener("click", () => showView("dashboard-view"));
+    });
+
+    document.getElementById("logout-btn")?.addEventListener("click", async () => {
+        try {
+            await fetchJson("/api/logout/");
+        } catch (err) {
+            console.error(err);
+        }
+
+        currentUserID = null;
+        showView("auth-view");
+        displayMessage("You have been logged out.", "info");
+    });
 }
 
-});
-
-
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    const res = await fetch('/api/login/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password})
+function setupAuthForms() {
+    document.getElementById("show-signup")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        const signupForm = document.getElementById("signup-form");
+        signupForm.style.display = signupForm.style.display === "none" ? "block" : "none";
     });
-    const data = await res.json();
 
-    if (res.ok) {
-        currentUserID = data.user_id;
-        displayMessage("🎉 Welcome, " + username + "!", "success");
-        showView('dashboard-view');
-    } else displayMessage("❌ " + data.error, "error");
-});
-document.getElementById('view-events-btn').addEventListener('click', async () => {
-    const res = await fetch('/api/events/');
-    const data = await res.json();
-    if (res.ok) renderUserEvents(data.events);
-    else displayMessage("❌ " + data.error, "error");
-});
+    document.getElementById("signup-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = document.getElementById("new-username").value;
+        const password = document.getElementById("new-password").value;
 
+        const {response, data} = await fetchJson("/api/signup/", {
+            method: "POST",
+            body: JSON.stringify({username, password}),
+        });
 
+        if (response.ok) {
+            displayMessage("Account created. Please log in.", "success");
+            document.getElementById("signup-form").style.display = "none";
+            document.getElementById("login-form").reset();
+        } else {
+            displayMessage(data.error || "Signup failed.", "error");
+        }
+    });
 
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('weather-form');
+    document.getElementById("login-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const {response, data} = await fetchJson("/api/login/", {
+            method: "POST",
+            body: JSON.stringify({username, password}),
+        });
+
+        if (response.ok) {
+            currentUserID = data.user_id;
+            displayMessage(`Welcome, ${username}!`, "success");
+            showView("dashboard-view");
+        } else {
+            displayMessage(data.error || "Login failed.", "error");
+        }
+    });
+}
+
+function setupWeatherForm() {
+    const form = document.getElementById("weather-form");
     if (!form) return;
 
-    form.addEventListener('submit', async function(event) {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const eventName = document.getElementById('event-name').value;
-        const eventDetails = document.getElementById('event-details').value;
-        const dateInput = document.getElementById('target-date').value;
-
-        // 👇 the actual city input field in your HTML
-        const cityInput = document.getElementById('location-query').value.trim();
-        console.log({ eventName, dateInput, cityInput });
-
+        const eventName = document.getElementById("event-name").value.trim();
+        const eventDetails = document.getElementById("event-details").value.trim();
+        const dateInput = document.getElementById("target-date").value;
+        const cityInput = document.getElementById("location-query").value.trim();
 
         if (!eventName || !dateInput || !cityInput) {
-            displayMessage("⚠️ Please enter all the fields ", 'error');
+            displayMessage("Please enter the event name, date, and location.", "error");
             return;
         }
 
-        const date = new Date(dateInput);
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
+        const [, month, day] = dateInput.split("-").map(Number);
 
         try {
-            displayMessage(`🌦 Fetching forecast for ${cityInput}...`, 'info');
+            displayMessage(`Fetching historical weather data for ${cityInput}...`, "info");
 
-            // call your Django API using city name
-            const response = await fetch(`/api/climatology/?city=${encodeURIComponent(cityInput)}&month=${month}&day=${day}`);
-            const result = await response.json();
+            const climatologyUrl = `/api/climatology/?city=${encodeURIComponent(cityInput)}&month=${month}&day=${day}`;
+            const {response, data} = await fetchJson(climatologyUrl, {headers: {}});
 
-            if (!response.ok) throw new Error(result.error || "Backend returned error");
+            if (!response.ok) {
+                throw new Error(data.error || "Backend returned an error.");
+            }
 
-            // interpret backend result
-            const backendResult = {
-                probability: result.rain_prob,
-                isRainy: result.rain_prob > 0.5
-            };
+            displayResults({probability: data.rain_prob}, cityInput, dateInput);
 
-            // display forecast on screen
-            displayResults(backendResult, cityInput, dateInput);
-
-            // then POST the event to /api/events/
-            await fetch('/api/events/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const saveResult = await fetchJson("/api/events/", {
+                method: "POST",
                 body: JSON.stringify({
                     user_id: currentUserID,
                     name: eventName,
                     details: eventDetails,
                     date: dateInput,
                     city: cityInput,
-                    probability: result.rain_prob
-                })
+                    probability: data.rain_prob,
+                }),
             });
 
-            displayMessage(`✅ Event "${eventName}" saved successfully!`, 'success');
+            if (!saveResult.response.ok) {
+                throw new Error(saveResult.data.error || saveResult.data.message || "Could not save event.");
+            }
+
+            displayMessage(`Event "${eventName}" saved successfully.`, "success");
         } catch (err) {
             console.error(err);
-            displayMessage("❌ Could not fetch forecast data. Please try again.", 'error');
+            displayMessage(err.message || "Could not fetch forecast data.", "error");
         }
     });
-});
-function displayResults(result, cityName, dateValue) {
-    const probabilityPercentage = (result.probability * 100).toFixed(0);
-    const predictionMessage = document.getElementById('prediction-message');
-    const probabilityFill = document.getElementById('probability-fill');
-
-    if (!predictionMessage || !probabilityFill) {
-        console.error("Missing prediction UI elements in HTML!");
-        return;
-    }
-
-    // Choose message and color
-    let message = "";
-    let color = "";
-    if (result.probability >= 0.65) {
-        message = "🌧 High chance of rain. Consider indoor plans!";
-        color = "red";
-    } else if (result.probability >= 0.4) {
-        message = "🌦 Moderate chance of rain. Stay cautious!";
-        color = "orange";
-    } else {
-        message = "☀️ Low chance of rain. Great day for outdoor activities!";
-        color = "green";
-    }
-
-    // Update UI
-    predictionMessage.innerHTML = `
-        <strong>Forecast for ${cityName}</strong><br>
-        Date: ${dateValue}<br>
-        Rain Probability: ${probabilityPercentage}%<br>
-        <span style="color:${color}; font-weight:bold;">${message}</span>
-    `;
-
-    probabilityFill.style.width = `${probabilityPercentage}%`;
-    probabilityFill.style.backgroundColor = color;
 }
-
-
-
-
-// --- EVENT HISTORY ---
-async function fetchPastEvents(userID) {
-    const eventsList = document.getElementById('events-list');
-    eventsList.innerHTML = '<li>Loading events...</li>';
-
-    try {
-        const response = await fetch(`/api/events/`);
-        if (!response.ok) throw new Error("Events fetch failed");
-        const events = await response.json();
-
-        if (events.length === 0) {
-            eventsList.innerHTML = '<li>No events added yet.</li>';
-            return;
-        }
-
-        eventsList.innerHTML = '';
-        events.forEach(event => {
-            const li = document.createElement('li');
-            const status = event.probability >= 0.65 ? 'High Rain Risk' :
-                          event.probability >= 0.40 ? 'Moderate Risk' : 'Low Risk';
-            li.innerHTML = `
-                <strong>${event.name}</strong> on ${event.date} in ${event.location}
-                <br>Rain Probability: ${(event.probability * 100).toFixed(0)}% (${status})
-            `;
-            eventsList.appendChild(li);
-        });
-
-    } catch (err) {
-        console.error(err);
-        eventsList.innerHTML = '<li>❌ Failed to load events.</li>';
-    }
-}
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    // rainCanvas = document.getElementById('rainCanvas');
-    // rainManager = new RainCanvas(rainCanvas);
-    showView('auth-view');
-});
-function setupBackButton() {
-  const btn = document.getElementById("back-to-dashboard-history-top");
-  if (!btn) {
-    console.warn("⚠️ Button not found yet, retrying...");
-    return setTimeout(setupBackButton, 500);
-  }
-
-  console.log("✅ Back button found:", btn);
-  btn.addEventListener("click", () => {
-    console.log("⬅️ Back button clicked");
-    showView("dashboard-view");
-  });
-}
-
-document.addEventListener("DOMContentLoaded", setupBackButton);
 
 document.addEventListener("DOMContentLoaded", () => {
-  try {
-    function attachBackButton() {
-      const btn = document.getElementById("back-to-dashboard-history-top");
-      if (btn) {
-        console.log("✅ Back button found:", btn);
-        btn.addEventListener("click", () => {
-          console.log("⬅️ Back button clicked");
-          showView("dashboard-view");
-        });
-      } else {
-        console.warn("⚠️ Back button not found yet, retrying...");
-        setTimeout(attachBackButton, 500);
-      }
-    }
-    attachBackButton();
-  } catch (err) {
-    console.error("⚠️ Error in back button handler:", err);
-  }
+    setupNavigation();
+    setupAuthForms();
+    setupWeatherForm();
+    showView("auth-view");
 });
-
-

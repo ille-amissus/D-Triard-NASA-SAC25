@@ -1,34 +1,25 @@
-# GitHub Repository Description
+﻿# GitHub Repository Setup Notes
 
-Use this in the GitHub repository About section:
+Use this text in the GitHub repository About section:
 
-```text
+~~~text
 Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
-```
+~~~
 
 ## Suggested Topics
 
-```text
-django
-python
-nasa-power
-climate-data
-weather
-event-planner
-openstreetmap
-hackathon
-sqlite
-tailwindcss
-```
+~~~text
+django, nasa-power, weather, climate-data, event-planner, python, openstreetmap
+~~~
 
-## Longer Project Summary
+## README Image Placeholders
 
-D-Triard Pro helps users plan outdoor events by estimating rain risk from historical NASA POWER climate records. The Django backend geocodes a location, requests daily precipitation, temperature, humidity, and wind data, computes a transparent rain probability, and stores each logged-in user's event predictions for later review.
+The README follows the structure from `ahmed3bahaa/readme-template` and currently uses placeholder images under `docs/images/`:
 
-## Suggested Commit Story
+- `docs/images/logo-placeholder.svg`
+- `docs/images/project-overview-placeholder.svg`
+- `docs/images/workflow-placeholder.svg`
 
-- Dependency and repository hygiene.
-- Django settings and API validation hardening.
-- Frontend login, navigation, and event history cleanup.
-- README and tutorial documentation.
-- Deployment and API reference documentation.
+Replace these files manually with final screenshots or diagrams when they are ready. Keep the same filenames if you do not want to edit the README again.
+
+Do not commit private credentials, real secrets, or large generated artifacts. Use sanitized visuals for public GitHub documentation.

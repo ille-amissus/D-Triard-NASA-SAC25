@@ -1,140 +1,247 @@
-# D-Triard NASA SAC25
+﻿<a id="readme-top"></a>
 
-D-Triard Pro is a Django web application for planning outdoor events with climate-aware rain-risk guidance. A user creates an account, enters an event date and location, and the app geocodes the place, fetches historical daily weather data from NASA POWER, calculates a rain probability, and saves the plan for later review.
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
 
-## Project Description
+<br />
+<div align="center">
+  <a href="https://github.com/ille-amissus/D-Triard-NASA-SAC25">
+    <img src="docs/images/logo-placeholder.svg" alt="D-Triard NASA SAC25 logo placeholder" width="90" height="90">
+  </a>
 
-This project was built as an event-planning decision support tool. Instead of showing only a normal one-day weather forecast, it uses historical climatology for the same month/day across multiple years. That makes it useful when someone wants to plan a future event and understand whether the selected date and city are usually rainy.
+  <h3 align="center">D-Triard NASA SAC25</h3>
 
-The app combines:
+  <p align="center">
+    Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
+    <br />
+    <a href="docs/GITHUB_DESCRIPTION.md"><strong>Explore the docs Â»</strong></a>
+    <br />
+    <br />
+    <a href="#usage">View Usage</a>
+    &middot;
+    <a href="https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues/new">Report Bug</a>
+    &middot;
+    <a href="https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues/new">Request Feature</a>
+  </p>
+</div>
 
-- Django backend routes for authentication, weather analysis, and saved events.
-- NASA POWER daily climate data for precipitation, temperature, humidity, and wind.
-- OpenStreetMap Nominatim geocoding to convert city names into latitude/longitude.
-- A Tailwind-powered frontend for signup, login, event planning, prediction display, and event history.
-- SQLite for local development storage.
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about-the-project">About The Project</a><ul><li><a href="#built-with">Built With</a></li></ul></li>
+    <li><a href="#getting-started">Getting Started</a><ul><li><a href="#prerequisites">Prerequisites</a></li><li><a href="#installation">Installation</a></li></ul></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#project-structure">Project Structure</a></li>
+    <li><a href="#validation">Validation</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-## Features
+## About The Project
 
-- User signup, login, logout, and session-based saved event history.
-- City/date based rain-risk calculation using historical NASA POWER data.
-- Weighted probability based on precipitation frequency, humidity, temperature, and wind.
-- Saved event predictions with name, details, city, date, probability, and creation time.
-- Client-side dashboard flow for planning new events and reviewing previous plans.
-- Environment-based settings for safer local and hosted deployment.
+[![Project overview placeholder][project-screenshot]](#usage)
 
-## How It Works
+Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
 
-1. The user enters an event name, event date, and location.
-2. The frontend sends the city, month, and day to `/api/climatology/`.
-3. The backend geocodes the city with OpenStreetMap Nominatim.
-4. The backend requests historical daily data from NASA POWER for 2000-2024.
-5. The app filters historical records matching the requested month/day.
-6. It computes average precipitation, temperature, humidity, and wind values.
-7. It estimates rain probability by combining precipitation frequency with weather-condition factors.
-8. If the user is logged in, the event and probability are saved to the database.
+The repository currently offers:
 
-## Tech Stack
+- User signup, login, logout, and saved event history
+- City and date based rain-risk calculation
+- NASA POWER historical climate data lookup
+- OpenStreetMap Nominatim geocoding
+- Weighted probability based on precipitation, humidity, temperature, and wind
+- Tailwind-powered planning and history interface
 
-- Python 3
-- Django 5.2
+This README follows the shared template requested for the repository set and keeps the claims limited to files and documentation present in this project.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Built With
+
+- Python
+- Django
 - SQLite
 - Pandas
 - Requests
 - NASA POWER API
 - OpenStreetMap Nominatim
-- HTML, CSS, JavaScript
-- Tailwind CSS CDN
+- HTML
+- CSS
+- JavaScript
 
-## Local Setup
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
+## Getting Started
+
+Follow these steps to clone the repository and run the project locally.
+
+### Prerequisites
+
+- Python 3
+- pip
+- Internet access for NASA POWER and Nominatim requests
+
+### Installation
+
+~~~bash
 git clone https://github.com/ille-amissus/D-Triard-NASA-SAC25.git
 cd D-Triard-NASA-SAC25
 python -m venv .venv
-```
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env
 python manage.py migrate
 python manage.py runserver
-```
+~~~
 
-macOS/Linux:
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python manage.py migrate
+## Usage
+
+Useful commands and entry points:
+
+~~~bash
 python manage.py runserver
-```
+~~~
 
-Open the app at:
+~~~bash
+Open http://127.0.0.1:8000/
+~~~
 
-```text
-http://127.0.0.1:8000/
-```
+~~~bash
+Use /api/climatology/?city=Sakarya&month=7&day=15
+~~~
 
-## Usage Tutorial
+### Visual Placeholders
 
-1. Open the home page.
-2. Create a new account from the signup panel.
-3. Log in with the new account.
-4. Select **Plan New Event & Forecast**.
-5. Enter an event name, date, time, and location.
-6. Click **HOW'S THE WEATHER?**.
-7. Review the rain probability and recommendation.
-8. Return to the dashboard and select **Review Past Plans** to see saved predictions.
+Placeholder images are included under `docs/images/` so you can replace them manually later without changing the README layout.
 
-## API Overview
+<p align="center">
+  <img src="docs/images/project-overview-placeholder.svg" alt="D-Triard NASA SAC25 overview placeholder" width="48%">
+  <img src="docs/images/workflow-placeholder.svg" alt="D-Triard NASA SAC25 workflow placeholder" width="48%">
+</p>
 
-| Endpoint | Method | Purpose |
-| --- | --- | --- |
-| `/` | GET | Render the frontend |
-| `/api/signup/` | POST | Create a user |
-| `/api/login/` | POST | Start a user session |
-| `/api/logout/` | GET | End the user session |
-| `/api/climatology/?city=Sakarya&month=7&day=15` | GET | Calculate historical rain probability |
-| `/api/events/` | GET | List saved events for the logged-in user |
-| `/api/events/` | POST | Save a forecasted event |
+Suggested final visuals:
 
-More details are available in [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
+- Project overview screenshot or main terminal output.
+- Workflow, architecture, or data-flow diagram.
+- Example result, dashboard, report, or generated artifact screenshot.
+- Short GIF only when it is small and useful.
 
-## Deployment Notes
+Avoid committing large raw videos, private datasets, credentials, runtime logs, or generated secrets. Use sanitized screenshots and diagrams.
 
-The project is ready for GitHub and local Django deployment. For hosted deployment, configure the environment variables in `.env.example`, set `DJANGO_DEBUG=False`, add your host to `DJANGO_ALLOWED_HOSTS`, run migrations, and serve static files through your hosting platform.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Detailed deployment steps are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+## How It Works
 
-## Recommended GitHub Description
+`	ext
+User event form -> Django route -> geocoding -> NASA POWER climatology -> rain probability -> saved event history
+`
 
-```text
-Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
-```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Recommended topics:
+## Project Structure
 
-```text
-django, nasa-power, weather, climate-data, event-planner, python, openstreetmap, hackathon
-```
+- NasaRain/ - Django project settings
+- myapp/ - views, URLs, models, templates, static assets, services
+- docs/ - API, deployment, tutorial, visuals, and GitHub notes
+- requirements.txt - Python dependencies
+- manage.py - Django CLI
 
-## Should This Project Include Visuals?
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Yes. Because this is a web application, visuals will make the GitHub page much stronger. Add:
+## Validation
 
-- A dashboard screenshot.
-- A forecast result screenshot.
-- A saved event history screenshot.
-- A short GIF showing signup, forecast generation, and saved history.
-- A simple architecture diagram showing Browser -> Django -> Geocoder -> NASA POWER -> SQLite.
+Run the most relevant checks for this repository:
 
-Place images in `docs/assets/` and reference them from this README after they are created.
+~~~bash
+python manage.py check
+~~~
+
+~~~bash
+python manage.py test
+~~~
+
+Some validations depend on local tools, services, datasets, API credentials, or a configured lab environment.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Roadmap
+
+- [ ] Replace placeholder images with final screenshots or diagrams.
+- [ ] Keep setup commands synchronized with the current project files.
+- [ ] Add more examples or test fixtures when the project grows.
+- [ ] Add a repository-level license if the project will be reused outside its original context.
+
+See the [open issues](https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues) for proposed features and known issues.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Contributing
+
+Contributions are welcome for documentation, examples, tests, and implementation improvements.
+
+1. Fork the project.
+2. Create your feature branch:
+
+   ~~~bash
+   git checkout -b feature/AmazingFeature
+   ~~~
+
+3. Commit your changes:
+
+   ~~~bash
+   git commit -m "Add some AmazingFeature"
+   ~~~
+
+4. Push to the branch:
+
+   ~~~bash
+   git push origin feature/AmazingFeature
+   ~~~
+
+5. Open a pull request.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Top Contributors
+
+<a href="https://github.com/ille-amissus/D-Triard-NASA-SAC25/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ille-amissus/D-Triard-NASA-SAC25" alt="Top contributors for D-Triard NASA SAC25" />
+</a>
 
 ## License
 
-No license file is currently included. Add one before reuse or public distribution if needed.
+No repository-level license file was verified in this project. Add a license before reuse or distribution outside the intended coursework, lab, or prototype context.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Contact
+
+Project owner: [@ille-amissus](https://github.com/ille-amissus)
+
+Project Link: [https://github.com/ille-amissus/D-Triard-NASA-SAC25](https://github.com/ille-amissus/D-Triard-NASA-SAC25)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Acknowledgments
+
+- README structure adapted from [ahmed3bahaa/readme-template](https://github.com/ahmed3bahaa/readme-template).
+- Project files, reports, fixtures, and documentation included in this repository.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+[contributors-shield]: https://img.shields.io/github/contributors/ille-amissus/D-Triard-NASA-SAC25.svg?style=for-the-badge
+[contributors-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/ille-amissus/D-Triard-NASA-SAC25.svg?style=for-the-badge
+[forks-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/network/members
+[stars-shield]: https://img.shields.io/github/stars/ille-amissus/D-Triard-NASA-SAC25.svg?style=for-the-badge
+[stars-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/stargazers
+[issues-shield]: https://img.shields.io/github/issues/ille-amissus/D-Triard-NASA-SAC25.svg?style=for-the-badge
+[issues-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues
+[project-screenshot]: docs/images/project-overview-placeholder.svg

@@ -1,20 +1,13 @@
-﻿# Visuals Guide
+# Visual Assets
 
-The root README currently uses placeholder images in `docs/images/`.
+The README now uses the screenshots and result images stored in `docs/images`.
 
-Recommended visuals for this repository:
+| File | Shows |
+| --- | --- |
+| `docs/images/UI.png` | D-Triard home screen |
+| `docs/images/Plan_Event.png` | Event planning form |
+| `docs/images/OutPut.png` | Rain risk output |
+| `docs/images/Event_History.png` | Saved event history |
+| `docs/images/Access.png` | Access screen |
 
-- Project overview screenshot or terminal output.
-- Workflow, architecture, or data-flow diagram.
-- Example result screenshot.
-- Small GIF only when it clearly improves understanding.
-
-Current placeholder files:
-
-~~~text
-docs/images/logo-placeholder.svg
-docs/images/project-overview-placeholder.svg
-docs/images/workflow-placeholder.svg
-~~~
-
-Replace these files manually when final visuals are ready. Avoid adding large videos, private datasets, credentials, runtime logs, or raw security evidence to Git.
+Keep future screenshots sanitized and focused on the actual project flow so the repository stays easy to understand.

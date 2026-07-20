@@ -7,16 +7,13 @@
 
 <br />
 <div align="center">
-  <a href="https://github.com/ille-amissus/D-Triard-NASA-SAC25">
-    <img src="docs/images/logo-placeholder.svg" alt="D-Triard NASA SAC25 logo placeholder" width="90" height="90">
-  </a>
 
   <h3 align="center">D-Triard NASA SAC25</h3>
 
   <p align="center">
     Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
     <br />
-    <a href="docs/GITHUB_DESCRIPTION.md"><strong>Explore the docs Â»</strong></a>
+    <a href="docs/GITHUB_DESCRIPTION.md"><strong>Explore the docs</strong></a>
     <br />
     <br />
     <a href="#usage">View Usage</a>
@@ -46,7 +43,9 @@
 
 ## About The Project
 
-[![Project overview placeholder][project-screenshot]](#usage)
+<p align="center">
+  <img src="docs/images/UI.png" alt="D-Triard home screen" width="86%">
+</p>
 
 Django event-planning app that uses NASA POWER climate data and OpenStreetMap geocoding to estimate rain risk for future events and save forecast history.
 
@@ -59,7 +58,6 @@ The repository currently offers:
 - Weighted probability based on precipitation, humidity, temperature, and wind
 - Tailwind-powered planning and history interface
 
-This README follows the shared template requested for the repository set and keeps the claims limited to files and documentation present in this project.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -117,31 +115,31 @@ Open http://127.0.0.1:8000/
 Use /api/climatology/?city=Sakarya&month=7&day=15
 ~~~
 
-### Visual Placeholders
+### Screenshots
 
-Placeholder images are included under `docs/images/` so you can replace them manually later without changing the README layout.
+These screens cover the main planning flow: accessing the app, creating an event, seeing the forecast output, and checking event history.
 
 <p align="center">
-  <img src="docs/images/project-overview-placeholder.svg" alt="D-Triard NASA SAC25 overview placeholder" width="48%">
-  <img src="docs/images/workflow-placeholder.svg" alt="D-Triard NASA SAC25 workflow placeholder" width="48%">
+  <img src="docs/images/UI.png" alt="D-Triard home screen" width="48%">
+  <img src="docs/images/Plan_Event.png" alt="Event planning form" width="48%">
 </p>
 
-Suggested final visuals:
+<p align="center">
+  <img src="docs/images/OutPut.png" alt="Rain risk output" width="48%">
+  <img src="docs/images/Event_History.png" alt="Saved event history" width="48%">
+</p>
 
-- Project overview screenshot or main terminal output.
-- Workflow, architecture, or data-flow diagram.
-- Example result, dashboard, report, or generated artifact screenshot.
-- Short GIF only when it is small and useful.
-
-Avoid committing large raw videos, private datasets, credentials, runtime logs, or generated secrets. Use sanitized screenshots and diagrams.
+<p align="center">
+  <img src="docs/images/Access.png" alt="Access screen" width="48%">
+</p>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## How It Works
 
-`	ext
+```text
 User event form -> Django route -> geocoding -> NASA POWER climatology -> rain probability -> saved event history
-`
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -167,18 +165,16 @@ python manage.py check
 python manage.py test
 ~~~
 
-Some validations depend on local tools, services, datasets, API credentials, or a configured lab environment.
+Live checks need the matching local services, datasets, credentials, or lab tools installed first.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Roadmap
 
-- [ ] Replace placeholder images with final screenshots or diagrams.
-- [ ] Keep setup commands synchronized with the current project files.
-- [ ] Add more examples or test fixtures when the project grows.
-- [ ] Add a repository-level license if the project will be reused outside its original context.
-
-See the [open issues](https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues) for proposed features and known issues.
+- Refine the rain probability formula as more climate indicators and validation examples are added.
+- Improve the saved-event history view with filtering by city, date, and risk level.
+- Cache geocoding and climate requests so repeated checks are faster and friendlier to external APIs.
+- Add deployment notes for a hosted Django environment with environment-based settings.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -217,7 +213,7 @@ Contributions are welcome for documentation, examples, tests, and implementation
 
 ## License
 
-No repository-level license file was verified in this project. Add a license before reuse or distribution outside the intended coursework, lab, or prototype context.
+This repository does not include a root license yet. Add one before reusing or distributing the project outside its original coursework, lab, or prototype context.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -244,4 +240,3 @@ Project Link: [https://github.com/ille-amissus/D-Triard-NASA-SAC25](https://gith
 [stars-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/stargazers
 [issues-shield]: https://img.shields.io/github/issues/ille-amissus/D-Triard-NASA-SAC25.svg?style=for-the-badge
 [issues-url]: https://github.com/ille-amissus/D-Triard-NASA-SAC25/issues
-[project-screenshot]: docs/images/project-overview-placeholder.svg
